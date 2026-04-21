@@ -39,4 +39,5 @@ app.get('*', (req, res) => {
 
 const PORT = process.env.PORT || 5001;
 const HOST = process.env.HOST || '0.0.0.0';
-app.listen(PORT, HOST, () => console.log(`Backend running on http://${HOST}:${PORT}`));
+console.log(`Starting server on PORT: ${PORT}, HOST: ${HOST}`);
+app.listen(PORT, HOST, () => console.log(`✅ Backend running on http://${HOST}:${PORT}`));
