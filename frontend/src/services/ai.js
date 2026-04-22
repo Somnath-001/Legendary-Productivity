@@ -1,7 +1,7 @@
 // frontend/src/services/ai.js
 export async function askAI(prompt, context = {}) {
   try {
-    const res = await fetch('http://localhost:5001/api/ai', {
+    const res = await fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt, context })
@@ -36,7 +36,7 @@ export async function askAI(prompt, context = {}) {
 
 export async function generateExperiment(data) {
   try {
-    const res = await fetch('http://localhost:5001/api/ai/experiment', {
+    const res = await fetch('/api/ai/experiment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
