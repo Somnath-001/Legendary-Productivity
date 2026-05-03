@@ -28,7 +28,8 @@ router.post('/', async (req, res) => {
     }
 
     if (!model) {
-      return res.status(503).json({ reply: 'AI service not configured (Missing GEMINI_API_KEY).' });
+      console.warn('[ai] Request received but GEMINI_API_KEY is not configured — returning placeholder response.');
+      return res.json({ reply: '⚠️ AI Cyber-Coach is offline. Set GEMINI_API_KEY to activate this feature.' });
     }
 
     // Construct Cyber-Coach System Prompt
@@ -73,7 +74,8 @@ router.post('/experiment', async (req, res) => {
     const days = Math.max(1, Math.min(30, parseInt(durationDays, 10) || 7));
 
     if (!model) {
-      return res.status(503).json({ raw: 'AI service not configured (Missing GEMINI_API_KEY).' });
+      console.warn('[ai] Experiment request received but GEMINI_API_KEY is not configured — returning placeholder response.');
+      return res.json({ summary: 'AI service offline.', plan: [], note: 'Set GEMINI_API_KEY to generate experiment plans.' });
     }
 
     const systemPrompt = `

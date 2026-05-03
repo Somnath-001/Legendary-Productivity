@@ -18,13 +18,17 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 const subscriptions = new Set();
 
 router.get('/public-key', (req, res) => {
-  if (!VAPID_PUBLIC_KEY) return res.status(500).json({ error: 'VAPID_PUBLIC_KEY not configured' });
+  if (!VAPID_PUBLIC_KEY) {
+    console.warn('[push] /public-key requested but VAPID_PUBLIC_KEY is not configured — returning placeholder.');
+    return res.json({ publicKey: null, note: 'Push notifications disabled. Set VAPID_PUBLIC_KEY to enable.' });
+  }
   return res.json({ publicKey: VAPID_PUBLIC_KEY });
 });
 
 router.post('/subscribe', (req, res) => {
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-    return res.status(500).json({ error: 'VAPID keys not configured on server' });
+    console.warn('[push] /subscribe requested but VAPID keys are not configured — returning placeholder.');
+    return res.json({ ok: false, note: 'Push notifications disabled. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to enable.' });
   }
   const subscription = req.body;
   if (!subscription || !subscription.endpoint) {
@@ -52,7 +56,8 @@ router.post('/unsubscribe', (req, res) => {
 
 router.post('/test', async (req, res) => {
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-    return res.status(500).json({ error: 'VAPID keys not configured on server' });
+    console.warn('[push] /test requested but VAPID keys are not configured — returning placeholder.');
+    return res.json({ ok: false, note: 'Push notifications disabled. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to enable.' });
   }
   try {
     const payload = JSON.stringify({
