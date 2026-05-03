@@ -28,7 +28,7 @@ export async function subscribePush() {
     }
 
     // Get public key from server
-    const r = await fetch('http://localhost:5001/api/push/public-key');
+    const r = await fetch('/api/push/public-key');
     if (!r.ok) {
       throw new Error(`Failed to get public key: ${r.status} ${r.statusText}`);
     }
@@ -46,7 +46,7 @@ export async function subscribePush() {
     });
 
     // Send subscription to server
-    const subscribeResponse = await fetch('http://localhost:5001/api/push/subscribe', { 
+    const subscribeResponse = await fetch('/api/push/subscribe', { 
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
       body: JSON.stringify(sub) 
@@ -69,7 +69,7 @@ export async function unsubscribePush() {
     const reg = await navigator.serviceWorker.getRegistration();
     const sub = await reg?.pushManager.getSubscription();
     if (sub) {
-      await fetch('http://localhost:5001/api/push/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
+      await fetch('/api/push/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
       await sub.unsubscribe();
     }
     localStorage.removeItem('ldt:pushSubscribed');
@@ -78,7 +78,7 @@ export async function unsubscribePush() {
 
 export async function sendTestPush() {
   try {
-    const response = await fetch('http://localhost:5001/api/push/test', { 
+    const response = await fetch('/api/push/test', { 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
@@ -104,5 +104,3 @@ function urlBase64ToUint8Array(base64String) {
   for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
   return outputArray;
 }
-
-
