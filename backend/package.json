@@ -6,13 +6,12 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
+    "groq-sdk": "^0.18.0",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^3.3.2",
-    "openai": "^5.12.2",
     "web-push": "^3.6.6"
   },
   "devDependencies": {

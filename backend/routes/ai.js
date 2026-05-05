@@ -1,23 +1,39 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
 dotenv.config();
 const router = express.Router();
 
-// Initialize Gemini
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
-let genAI = null;
-let model = null;
+// Initialize Groq (runs Llama models)
+const GROQ_KEY = process.env.GROQ_API_KEY;
+let groq = null;
 
-if (GEMINI_KEY) {
-  genAI = new GoogleGenerativeAI(GEMINI_KEY);
-  // Using the user-requested model
-  model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+const PRIMARY_MODEL = 'llama-3.3-70b-versatile';
+const FALLBACK_MODEL = 'llama-3.1-8b-instant';
+
+if (GROQ_KEY) {
+  groq = new Groq({ apiKey: GROQ_KEY });
+  console.log(`🤖 AI initialized: Groq (${PRIMARY_MODEL})`);
 } else {
-  console.warn('GEMINI_API_KEY not set in .env');
+  console.warn('⚠️  GROQ_API_KEY not set in .env — AI features disabled');
 }
 
+// Helper: call Groq chat completion
+async function chatCompletion(systemPrompt, userPrompt, modelName = PRIMARY_MODEL) {
+  const response = await groq.chat.completions.create({
+    model: modelName,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.7,
+    max_tokens: 2048,
+  });
+  return response.choices[0]?.message?.content || '';
+}
+
+// POST /api/ai — Ask AI (Cyber-Coach)
 router.post('/', async (req, res) => {
   try {
     const { prompt, context } = req.body;
@@ -27,9 +43,9 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    if (!model) {
-      console.warn('[ai] Request received but GEMINI_API_KEY is not configured — returning placeholder response.');
-      return res.json({ reply: '⚠️ AI Cyber-Coach is offline. Set GEMINI_API_KEY to activate this feature.' });
+    if (!groq) {
+      console.warn('[ai] Request received but GROQ_API_KEY is not configured — returning placeholder response.');
+      return res.json({ reply: '⚠️ AI Cyber-Coach is offline. Set GROQ_API_KEY to activate this feature.' });
     }
 
     // Construct Cyber-Coach System Prompt
@@ -45,21 +61,18 @@ router.post('/', async (req, res) => {
 `;
     }
 
-    const finalPrompt = `${systemInstruction}\n\nUSER PROMPT: ${prompt}`;
-
     try {
-      const result = await model.generateContent(finalPrompt);
-      const response = await result.response;
-      const text = response.text();
+      const text = await chatCompletion(systemInstruction, prompt, PRIMARY_MODEL);
       return res.json({ reply: text });
     } catch (modelErr) {
-      console.warn('Primary model failed (likely 429), switching to Fallback (Flash)...', modelErr.message);
-      // Fallback to Flash
-      const fallbackModel = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-      const result = await fallbackModel.generateContent(finalPrompt);
-      const response = await result.response;
-      const text = response.text();
-      return res.json({ reply: text + " [NOTE: Fallback to Flash-Latest due to Quota Limit]" });
+      console.warn(`Primary model (${PRIMARY_MODEL}) failed, switching to fallback (${FALLBACK_MODEL})...`, modelErr.message);
+      try {
+        const text = await chatCompletion(systemInstruction, prompt, FALLBACK_MODEL);
+        return res.json({ reply: text + ` [NOTE: Fallback to ${FALLBACK_MODEL} due to rate limit]` });
+      } catch (fallbackErr) {
+        console.error('Fallback model also failed:', fallbackErr.message);
+        return res.status(500).json({ error: 'AI request failed on both primary and fallback models' });
+      }
     }
   } catch (err) {
     console.error('AI endpoint error:', err);
@@ -67,43 +80,37 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Experiment Generator
+// POST /api/ai/experiment — Experiment Generator
 router.post('/experiment', async (req, res) => {
   try {
     const { topic = '', book = '', durationDays = 7 } = req.body;
     const days = Math.max(1, Math.min(30, parseInt(durationDays, 10) || 7));
 
-    if (!model) {
-      console.warn('[ai] Experiment request received but GEMINI_API_KEY is not configured — returning placeholder response.');
-      return res.json({ summary: 'AI service offline.', plan: [], note: 'Set GEMINI_API_KEY to generate experiment plans.' });
+    if (!groq) {
+      console.warn('[ai] Experiment request received but GROQ_API_KEY is not configured — returning placeholder response.');
+      return res.json({ summary: 'AI service offline.', plan: [], note: 'Set GROQ_API_KEY to generate experiment plans.' });
     }
 
-    const systemPrompt = `
-You are a concise, practical mentor. Produce a ${days}-day, step-by-step experiment plan on this topic:
-"${topic}"
-Context / constraints: ${book ? `Based on ideas from the book "${book}".` : 'No book specified.'}
+    const systemPrompt = `You are a concise, practical mentor. Produce a ${days}-day, step-by-step experiment plan.
 
 Output format: JSON with two keys:
 1) "summary" — one-sentence summary of the experiment.
 2) "plan" — an array of objects for each day: {"day": <n>, "goal": "<one-line>", "actions": ["step1", "step2"], "measure": "<how to measure success>"}.
 
-Keep language simple and actionable. Make each day's actions doable in 20–90 minutes. Return strictly valid JSON (no extra commentary).
-`;
+Keep language simple and actionable. Make each day's actions doable in 20–90 minutes. Return strictly valid JSON (no extra commentary, no markdown).`;
+
+    const userPrompt = `Topic: "${topic}"
+${book ? `Based on ideas from the book "${book}".` : 'No book specified.'}`;
 
     let content = "";
     try {
-      const result = await model.generateContent(systemPrompt);
-      const response = await result.response;
-      content = response.text();
+      content = await chatCompletion(systemPrompt, userPrompt, PRIMARY_MODEL);
     } catch (modelErr) {
-      console.warn('Experiment Primary model failed, switching to Flash...', modelErr.message);
-      const fallbackModel = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-      const result = await fallbackModel.generateContent(systemPrompt);
-      const response = await result.response;
-      content = response.text();
+      console.warn(`Experiment: Primary model failed, switching to ${FALLBACK_MODEL}...`, modelErr.message);
+      content = await chatCompletion(systemPrompt, userPrompt, FALLBACK_MODEL);
     }
 
-    // Extract JSON safely (Gemini might add markdown backticks)
+    // Extract JSON safely (model might add markdown backticks)
     const jsonTextMatch = content.match(/\{[\s\S]*\}$/);
     let parsed = null;
     try {

@@ -20,8 +20,7 @@ const HOST = '0.0.0.0'; // Railway requires 0.0.0.0
 console.log(`🚀 Starting Legendary Productivity Server`);
 console.log(`📍 PORT: ${PORT}`);
 console.log(`🌐 HOST: ${HOST}`);
-console.log(`🔑 OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? 'SET' : 'NOT SET'}`);
-console.log(`🔑 GEMINI_API_KEY: ${process.env.GEMINI_API_KEY ? 'SET' : 'NOT SET'}`);
+console.log(`🔑 GROQ_API_KEY: ${process.env.GROQ_API_KEY ? 'SET' : 'NOT SET'}`);
 console.log(`🔔 VAPID_PUBLIC_KEY: ${process.env.VAPID_PUBLIC_KEY ? 'SET' : 'NOT SET'}`);
 
 app.use(cors({
