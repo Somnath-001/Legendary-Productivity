@@ -1,5 +1,8 @@
 # Legendary Productivity
 
+## 🚀 Live Demo
+Deployed on AWS EC2: http://34.204.59.136:8080/
+
 > "The cost of adding a feature isn't just the time it takes to code it. The cost is also the added weight and complexity it adds to the system forever."
 
 A deterministic, full-stack task execution engine. Built to remove friction from doing, not from planning.
